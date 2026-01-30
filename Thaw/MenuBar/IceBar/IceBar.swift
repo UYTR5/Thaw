@@ -74,31 +74,6 @@ final class IceBarPanel: NSPanel {
             }
             .store(in: &c)
 
-        if let controlItem = appState?.menuBarManager.controlItem(withName: .hidden) {
-            // Use the hidden control item's frame to determine if the menu bar
-            // is hidden. Hide the panel if so.
-            controlItem.$frame
-                .combineLatest(controlItem.$screen)
-                .throttle(for: 0.1, scheduler: DispatchQueue.main, latest: true)
-                .sink { [weak self] frame, screen in
-                    guard let self else {
-                        return
-                    }
-
-                    guard let frame, let screen else {
-                        hide()
-                        return
-                    }
-
-                    // Icon is not vertically visible. We can infer that the
-                    // menu bar is hidden.
-                    if frame.maxY > screen.frame.maxY {
-                        hide()
-                    }
-                }
-                .store(in: &c)
-        }
-
         cancellables = c
     }
 
@@ -224,7 +199,9 @@ final class IceBarPanel: NSPanel {
 // MARK: - IceBarHostingView
 
 private final class IceBarHostingView: NSHostingView<IceBarContentView> {
-    override var safeAreaInsets: NSEdgeInsets { NSEdgeInsets() }
+    override var safeAreaInsets: NSEdgeInsets {
+        NSEdgeInsets()
+    }
 
     init(
         appState: AppState,
@@ -361,9 +338,6 @@ private struct IceBarContentView: View {
                 .foregroundStyle(.link)
             }
             .padding(.horizontal, 10)
-        } else if menuBarManager.isMenuBarHiddenBySystemUserDefaults {
-            Text("\(Constants.displayName) cannot display menu bar items for automatically hidden menu bars")
-                .padding(.horizontal, 10)
         } else if itemManager.itemCache.managedItems.isEmpty {
             HStack {
                 Text("Loading menu bar items…")

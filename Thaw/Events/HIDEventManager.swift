@@ -49,8 +49,7 @@ final class HIDEventManager: ObservableObject {
     private(set) lazy var mouseDownMonitor = EventMonitor.universal(
         for: [.leftMouseDown, .rightMouseDown]
     ) { [weak self] event in
-        guard let self, isEnabled, let appState,
-            let screen = bestScreen(appState: appState)
+        guard let self, isEnabled, let appState, let screen = bestScreen(appState: appState)
         else {
             return event
         }
@@ -86,9 +85,7 @@ final class HIDEventManager: ObservableObject {
     private(set) lazy var mouseDraggedMonitor = EventMonitor.universal(
         for: .leftMouseDragged
     ) { [weak self] event in
-        if let self, isEnabled, let appState,
-            let screen = bestScreen(appState: appState)
-        {
+        if let self, isEnabled, let appState, let screen = bestScreen(appState: appState) {
             handleMenuBarItemDragStart(
                 with: event,
                 appState: appState,
@@ -128,9 +125,7 @@ final class HIDEventManager: ObservableObject {
     private(set) lazy var scrollWheelMonitor = EventMonitor.universal(
         for: .scrollWheel
     ) { [weak self] event in
-        if let self, isEnabled, let appState,
-            let screen = bestScreen(appState: appState)
-        {
+        if let self, isEnabled, let appState, let screen = bestScreen(appState: appState) {
             handleShowOnScroll(with: event, appState: appState, screen: screen)
         }
         return event
@@ -172,31 +167,6 @@ final class HIDEventManager: ObservableObject {
                     }
                 }
                 .store(in: &c)
-
-            if let hiddenSection = appState.menuBarManager.section(
-                withName: .hidden
-            ) {
-                // In fullscreen mode, the menu bar slides down from the top on hover. Observe the
-                // frame of the hidden section's control item, which we know will always be in the
-                // menu bar, and run the show-on-hover check when it changes.
-                Publishers.CombineLatest3(
-                    hiddenSection.controlItem.$frame,
-                    appState.$activeSpace.map(\.isFullscreen),
-                    appState.menuBarManager.$isMenuBarHiddenBySystem
-                )
-                .receive(on: DispatchQueue.main)
-                .sink { [weak self, weak appState] _, isFullscreen, isMenuBarHiddenBySystem in
-                    guard let self, isEnabled, let appState,
-                        isFullscreen || isMenuBarHiddenBySystem
-                    else {
-                        return
-                    }
-                    if let screen = bestScreen(appState: appState) {
-                        handleShowOnHover(appState: appState, screen: screen)
-                    }
-                }
-                .store(in: &c)
-            }
         }
 
         cancellables = c
@@ -245,10 +215,9 @@ extension HIDEventManager {
 
             let targetSection: MenuBarSection
 
-            if NSEvent.modifierFlags == .option,
-                let alwaysHiddenSection = appState.menuBarManager.section(
-                    withName: .alwaysHidden
-                ),
+            if NSEvent.modifierFlags == .option, let alwaysHiddenSection = appState.menuBarManager.section(
+                withName: .alwaysHidden
+            ),
                 alwaysHiddenSection.isEnabled
             {
                 targetSection = alwaysHiddenSection
@@ -281,8 +250,7 @@ extension HIDEventManager {
         }
 
         // Make sure clicking the Ice icon doesn't trigger rehide.
-        if let iceIcon = appState.menuBarManager.controlItem(withName: .visible)
-        {
+        if let iceIcon = appState.menuBarManager.controlItem(withName: .visible) {
             guard event.window !== iceIcon.window else {
                 return
             }
@@ -566,24 +534,18 @@ extension HIDEventManager {
     /// A Boolean value that indicates whether the mouse pointer is within
     /// the bounds of the menu bar.
     func isMouseInsideMenuBar(appState: AppState, screen: NSScreen) -> Bool {
-        // Ice icon must be vertically visible. Otherwise, we can infer
-        // that the menu bar is hidden and the mouse is not inside.
         guard
-            let iceIcon = appState.menuBarManager.controlItem(
-                withName: .visible
-            ),
-            let iceIconFrame = iceIcon.frame,
-            iceIconFrame.maxY <= screen.frame.maxY,
-            let mouseLocation = MouseHelpers.locationAppKit
+            let mouseLocation = MouseHelpers.locationAppKit,
+            let menuBarHeight = screen.getMenuBarHeight()
         else {
             return false
         }
 
-        // Infer the menu bar frame from the screen frame.
+        // Infer the menu bar frame from the screen frame and menu bar height.
         return mouseLocation.x >= screen.frame.minX
             && mouseLocation.x <= screen.frame.maxX
             && mouseLocation.y <= screen.frame.maxY
-            && mouseLocation.y >= screen.visibleFrame.maxY
+            && mouseLocation.y >= screen.frame.maxY - menuBarHeight
     }
 
     /// A Boolean value that indicates whether the mouse pointer is within
@@ -605,8 +567,7 @@ extension HIDEventManager {
 
     /// A Boolean value that indicates whether the mouse pointer is within
     /// the bounds of a menu bar item.
-    func isMouseInsideMenuBarItem(appState: AppState, screen: NSScreen) -> Bool
-    {
+    func isMouseInsideMenuBarItem(appState: AppState, screen: NSScreen) -> Bool {
         guard let mouseLocation = MouseHelpers.locationCoreGraphics else {
             return false
         }
