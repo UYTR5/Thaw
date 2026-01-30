@@ -115,8 +115,8 @@ final class MenuBarItemImageCache: ObservableObject {
             }
 
             Publishers.Merge3(
-                // Update every 5 seconds at minimum (reduced from 3 for better performance).
-                Timer.publish(every: 5, on: .main, in: .default).autoconnect()
+                // Update every 500ms at minimum.
+                Timer.publish(every: 0.5, on: .main, in: .default).autoconnect()
                     .replace(with: ()),
 
                 // Update when the active space or screen parameters change.
