@@ -649,7 +649,7 @@ final class MenuBarItemImageCache: ObservableObject {
     }
 
     /// Updates the cache for the given sections, if necessary.
-    func updateCache(sections: [MenuBarSection.Name]) async {
+    func updateCache(sections: [MenuBarSection.Name], skipRecentMoveCheck: Bool = false) async {
         guard let appState else {
             return
         }
@@ -668,15 +668,17 @@ final class MenuBarItemImageCache: ObservableObject {
             }
         }
 
-        guard
-            await !appState.itemManager.lastMoveOperationOccurred(
-                within: .seconds(1)
-            )
-        else {
-            logger.debug(
-                "Skipping item image cache due to recent item movement"
-            )
-            return
+        if !skipRecentMoveCheck {
+            guard
+                await !appState.itemManager.lastMoveOperationOccurred(
+                    within: .seconds(1)
+                )
+            else {
+                logger.debug(
+                    "Skipping item image cache due to recent item movement"
+                )
+                return
+            }
         }
 
         await updateCacheWithoutChecks(sections: sections)
@@ -703,7 +705,10 @@ final class MenuBarItemImageCache: ObservableObject {
             sectionsNeedingDisplay.append(section)
         }
 
-        await updateCache(sections: sectionsNeedingDisplay)
+        await updateCache(
+            sections: sectionsNeedingDisplay,
+            skipRecentMoveCheck: isIceBarPresented
+        )
     }
 
     /// Clears the images for the given section.
@@ -714,6 +719,7 @@ final class MenuBarItemImageCache: ObservableObject {
         }
         let tags = Set(appState.itemManager.itemCache[section].map(\.tag))
         images = images.filter { !tags.contains($0.key) }
+        accessOrder.removeAll { tags.contains($0) }
     }
 
     // MARK: Cache Failed
