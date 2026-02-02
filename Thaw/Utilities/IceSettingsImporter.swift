@@ -20,8 +20,14 @@ struct IceSettingsImporter {
 
     /// Checks if Ice settings are available for import.
     func hasIceSettings() -> Bool {
-        let iceUserDefaults = UserDefaults(suiteName: Self.iceBundleIdentifier)
-        return iceUserDefaults?.dictionaryRepresentation().isEmpty == false
+        guard
+            let iceUserDefaults = UserDefaults(suiteName: Self.iceBundleIdentifier),
+            let domain = iceUserDefaults.persistentDomain(forName: Self.iceBundleIdentifier)
+        else {
+            return false
+        }
+
+        return !domain.isEmpty
     }
 
     /// Imports settings from Ice if available.

@@ -53,8 +53,7 @@ struct PermissionsView: View {
         .fixedSize()
         .onAppear {
             checkForIceSettings()
-            let shouldShowImporter = hasIceSettings && !Defaults.bool(forKey: .hasCompletedFirstLaunch)
-            showImportIceSettings = shouldShowImporter
+            showImportIceSettings = hasIceSettings && !Defaults.bool(forKey: .hasCompletedFirstLaunch)
         }
     }
 
@@ -241,6 +240,10 @@ struct PermissionsView: View {
 
     private func checkForIceSettings() {
         hasIceSettings = iceImporter.hasIceSettings()
+
+        if !hasIceSettings {
+            showImportIceSettings = false
+        }
     }
 
     private func importIceSettings() {
