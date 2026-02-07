@@ -24,12 +24,16 @@ struct MenuBarAppearanceEditor: View {
 
     var body: some View {
         if #available(macOS 26.0, *) {
-            bodyContent
-                .safeAreaBar(edge: .bottom, spacing: 0) {
-                    bottomBar
-                }
+            VStack(spacing: 0) {
+                panelHeading
+                bodyContent
+            }
+            .safeAreaBar(edge: .bottom, spacing: 0) {
+                bottomBar
+            }
         } else {
             VStack(spacing: 0) {
+                panelHeading
                 bodyContent
                 bottomBar
             }
@@ -47,6 +51,18 @@ struct MenuBarAppearanceEditor: View {
         } else {
             mainForm
                 .padding(.top, topPadding)
+        }
+    }
+
+    @ViewBuilder
+    private var panelHeading: some View {
+        if case .panel = location {
+            Text("Menu Bar Appearance")
+                .font(.title2.weight(.semibold))
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.horizontal, 20)
+                .padding(.top, 16)
+                .padding(.bottom, 16)
         }
     }
 
@@ -84,7 +100,7 @@ struct MenuBarAppearanceEditor: View {
     }
 
     private var topPadding: CGFloat {
-        location == .panel ? 20 : 0
+        0
     }
 
     private var bottomBar: some View {
