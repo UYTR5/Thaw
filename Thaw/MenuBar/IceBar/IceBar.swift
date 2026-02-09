@@ -276,8 +276,8 @@ private struct IceBarContentView: View {
         return screen.hasNotch ? 0 : 2
     }
 
-    private var contentHeight: CGFloat? {
-        let menuBarHeight = screen.getMenuBarHeight() ?? NSStatusBar.system.thickness
+    private var contentHeight: CGFloat {
+        let menuBarHeight = screen.getMenuBarHeightEstimate()
         if configuration.shapeKind != .noShape, configuration.isInset, screen.hasNotch {
             return menuBarHeight - appState.appearanceManager.menuBarInsetAmount * 2
         }
@@ -285,9 +285,6 @@ private struct IceBarContentView: View {
     }
 
     private var itemMaxHeight: CGFloat? {
-        guard let contentHeight else {
-            return nil
-        }
         let availableHeight = contentHeight - verticalPadding * 2
         return availableHeight > 0 ? availableHeight : nil
     }

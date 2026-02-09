@@ -546,10 +546,35 @@ extension NSScreen {
         )
     }
 
+    /// Per-display cache of the last known menu bar height.
+    private static var menuBarHeightCache = [CGDirectDisplayID: CGFloat]()
+
     /// Returns the height of the menu bar on this screen.
     func getMenuBarHeight() -> CGFloat? {
         let menuBarWindow = WindowInfo.menuBarWindow(for: displayID)
-        return menuBarWindow?.bounds.height
+        guard let height = menuBarWindow?.bounds.height else {
+            return nil
+        }
+        NSScreen.menuBarHeightCache[displayID] = height
+        return height
+    }
+
+    /// Returns the menu bar height for this screen, falling back to the last
+    /// cached value for this display, then to a notch-aware estimate.
+    ///
+    /// Use this when a non-optional height is required (e.g. for clamping
+    /// IceBar item sizes) and the live window-list query may not yet be
+    /// available.
+    func getMenuBarHeightEstimate() -> CGFloat {
+        if let live = getMenuBarHeight() {
+            return live
+        }
+        if let cached = NSScreen.menuBarHeightCache[displayID] {
+            return cached
+        }
+        // Notched MacBooks have a ~37-38 pt menu bar; non-notch Macs use the
+        // standard status-bar thickness (22 pt).
+        return hasNotch ? 37.0 : NSStatusBar.system.thickness
     }
 
     /// Returns the frame of the application menu on this screen.
