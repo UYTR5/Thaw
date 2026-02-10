@@ -280,14 +280,19 @@ private struct IceBarContentView: View {
 
     private var contentHeight: CGFloat {
         let menuBarHeight = screen.getMenuBarHeightEstimate()
+        let liveHeight = screen.getMenuBarHeight()
         if configuration.shapeKind != .noShape, configuration.isInset, screen.hasNotch {
-            return menuBarHeight - appState.appearanceManager.menuBarInsetAmount * 2
+            let result = menuBarHeight - appState.appearanceManager.menuBarInsetAmount * 2
+            Self.diagLog.debug("contentHeight: menuBarHeightEstimate=\(menuBarHeight) liveHeight=\(liveHeight.map { "\($0)" } ?? "nil") insetAmount=\(appState.appearanceManager.menuBarInsetAmount) hasNotch=\(screen.hasNotch) shapeKind=\(String(describing: configuration.shapeKind)) isInset=\(configuration.isInset) result=\(result)")
+            return result
         }
+        Self.diagLog.debug("contentHeight: menuBarHeightEstimate=\(menuBarHeight) liveHeight=\(liveHeight.map { "\($0)" } ?? "nil") hasNotch=\(screen.hasNotch) shapeKind=\(String(describing: configuration.shapeKind)) isInset=\(configuration.isInset) result=\(menuBarHeight)")
         return menuBarHeight
     }
 
     private var itemMaxHeight: CGFloat? {
         let availableHeight = contentHeight - verticalPadding * 2
+        Self.diagLog.debug("itemMaxHeight: contentHeight=\(contentHeight) verticalPadding=\(verticalPadding) availableHeight=\(availableHeight)")
         return availableHeight > 0 ? availableHeight : nil
     }
 
@@ -415,6 +420,8 @@ private struct IceBarContentView: View {
 // MARK: - IceBarItemView
 
 private struct IceBarItemView: View {
+    private static let diagLog = DiagLog(category: "IceBar.ItemView")
+
     @ObservedObject var imageCache: MenuBarItemImageCache
     @ObservedObject var itemManager: MenuBarItemManager
     @ObservedObject var menuBarManager: MenuBarManager
@@ -480,6 +487,7 @@ private struct IceBarItemView: View {
         // MacBook Pro where the captured item height can be smaller than the
         // IceBar's content height derived from the full notch-area menu bar).
         let scale = maxHeight / intrinsic.height
+        Self.diagLog.debug("targetSize: intrinsic=\(intrinsic.width)x\(intrinsic.height) maxHeight=\(maxHeight) scale=\(scale) result=\(intrinsic.width * scale)x\(maxHeight)")
         return CGSize(width: intrinsic.width * scale, height: maxHeight)
     }
 
