@@ -1209,6 +1209,18 @@ extension MenuBarItemManager {
                 start.x = min(max(start.x, guardMin), guardMax)
                 clampSource = "guardBand"
             }
+
+            // Keep event coordinates away from screen corners to avoid
+            // triggering macOS hot corners. Hot corners activate when the
+            // cursor reaches both the extreme x and y of a corner
+            // simultaneously. Since menu bar events always use y values
+            // near the top edge, offsetting y by a few pixels is enough
+            // to prevent all top-corner activations without affecting the
+            // x range needed for item moves.
+            let cornerInset: CGFloat = 5
+            start.y = max(start.y, displayBounds.minY + cornerInset)
+            end.y = max(end.y, displayBounds.minY + cornerInset)
+
             let targetDisplay = CGDisplayBounds(screen.displayID).contains(targetBounds.origin) ? screen.displayID : CGMainDisplayID()
             let itemDisplay = CGDisplayBounds(screen.displayID).contains(itemBounds.origin) ? screen.displayID : CGMainDisplayID()
             logger.debug(
