@@ -1946,25 +1946,20 @@ extension MenuBarItemManager {
 
         // Rehide any previously temporarily shown items before showing a new one.
         // This prevents stale contexts from accumulating when the user opens multiple
-        // temporary items in quick succession, which would leave earlier items stranded
-        // in the visible section.
+        // temporary items in quick succession.
         if !temporarilyShownItemContexts.isEmpty {
             rehideTimer?.invalidate()
             rehideCancellable?.cancel()
             await rehideTemporarilyShownItems(force: true)
 
-            // If force-rehide still left stale contexts (e.g. items that couldn't
-            // be found on the active space), ensure their pendingRelocations entries
-            // survive but clear the in-memory contexts so they don't block us. The
-            // relocatePendingItems path will catch them on the next cache cycle.
-            if !temporarilyShownItemContexts.isEmpty {
-                diagLog.warning(
-                    """
-                    Force-rehide left \(self.temporarilyShownItemContexts.count) \
-                    stale context(s); clearing in-memory contexts (pendingRelocations will handle recovery)
-                    """
-                )
-                temporarilyShownItemContexts.removeAll()
+            // If some items failed to rehide (e.g. move timed out), don't remove
+            // them from the contexts list. They will be retried by the rehide timer
+            // or the next temporarilyShow call.
+            if temporarilyShownItemContexts.contains(where: { $0.tag == item.tag }) {
+                // The item we want to show is already in the temporary list.
+                // This can happen if the user clicks the same item twice very fast.
+                // Remove the old context so we can create a fresh one with new bounds.
+                removeTemporarilyShownItemFromCache(with: item.tag)
             }
         }
 
@@ -2256,17 +2251,21 @@ extension MenuBarItemManager {
 
         persistPendingRelocations()
 
+        // If force-hiding, we don't want to re-queue them for long delays.
+        // We want them back in the section immediately or kept in context.
         if failedContexts.isEmpty {
             logger.debug("All items were successfully rehidden")
         } else {
             logger.error(
                 """
-                Some items failed to rehide or were missing; retrying: \
+                Some items failed to rehide; keeping in context for retry: \
                 \(failedContexts.map { $0.tag }, privacy: .public)
                 """
             )
             temporarilyShownItemContexts.append(contentsOf: failedContexts.reversed())
-            runRehideTimer(for: 3)
+            if !force {
+                runRehideTimer(for: 3)
+            }
         }
     }
 
