@@ -651,10 +651,19 @@ extension MenuBarItemManager {
             diagLog.debug("cacheItemsRegardless: displayID=\(displayID.map { "\($0)" } ?? "nil"), previousWindowIDs count=\(previousWindowIDs.count)")
 
             var items = await MenuBarItem.getMenuBarItems(option: .activeSpace)
+
+            if items.isEmpty {
+                // Retry once after a small delay if we got zero items. This can happen
+                // due to transient WindowServer glitches or during display reconfigurations.
+                diagLog.warning("cacheItemsRegardless: getMenuBarItems returned ZERO items, retrying in 250ms...")
+                try? await Task.sleep(for: .milliseconds(250))
+                items = await MenuBarItem.getMenuBarItems(option: .activeSpace)
+            }
+
             diagLog.debug("cacheItemsRegardless: getMenuBarItems returned \(items.count) items")
 
             if items.isEmpty {
-                diagLog.warning("cacheItemsRegardless: getMenuBarItems returned ZERO items — this is likely the root cause of 'Loading menu bar items' being stuck")
+                diagLog.error("cacheItemsRegardless: getMenuBarItems returned ZERO items even after retry — this is the root cause of 'Loading menu bar items' being stuck")
             }
 
             let itemWindowIDs = currentItemWindowIDs ?? items.reversed().map { $0.windowID }
