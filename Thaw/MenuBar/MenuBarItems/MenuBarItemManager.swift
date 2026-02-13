@@ -223,13 +223,13 @@ final class MenuBarItemManager: ObservableObject {
         loadKnownItemIdentifiers()
         loadPinnedBundleIDs()
         loadPendingRelocations()
-        MenuBarItemManager.diagLog.debug("performSetup: loaded \(self.knownItemIdentifiers.count) known identifiers, \(self.pinnedHiddenBundleIDs.count) pinned hidden, \(self.pinnedAlwaysHiddenBundleIDs.count) pinned always-hidden")
+        MenuBarItemManager.diagLog.debug("performSetup: loaded \(knownItemIdentifiers.count) known identifiers, \(pinnedHiddenBundleIDs.count) pinned hidden, \(pinnedAlwaysHiddenBundleIDs.count) pinned always-hidden")
         // On first launch (no known identifiers), avoid auto-relocating the leftmost item
         // so everything remains in the hidden section until the user interacts.
         suppressNextNewLeftmostItemRelocation = knownItemIdentifiers.isEmpty
         MenuBarItemManager.diagLog.debug("performSetup: calling initial cacheItemsRegardless")
         await cacheItemsRegardless()
-        MenuBarItemManager.diagLog.debug("performSetup: initial cache complete, items in cache: visible=\(self.itemCache[.visible].count), hidden=\(self.itemCache[.hidden].count), alwaysHidden=\(self.itemCache[.alwaysHidden].count), managedItems=\(self.itemCache.managedItems.count)")
+        MenuBarItemManager.diagLog.debug("performSetup: initial cache complete, items in cache: visible=\(itemCache[.visible].count), hidden=\(itemCache[.hidden].count), alwaysHidden=\(itemCache[.alwaysHidden].count), managedItems=\(itemCache.managedItems.count)")
         configureCancellables(with: appState)
         configureCacheTick()
         MenuBarItemManager.diagLog.debug("performSetup: MenuBarItemManager setup complete")
@@ -508,7 +508,7 @@ extension MenuBarItemManager {
 
         init(controlItems: ControlItemPair, displayID: CGDirectDisplayID?) {
             self.controlItems = controlItems
-            cache = ItemCache(displayID: displayID)
+            self.cache = ItemCache(displayID: displayID)
         }
 
         func bestBounds(for item: MenuBarItem) -> CGRect {
@@ -1351,12 +1351,14 @@ extension MenuBarItemManager {
 
             // Keep event coordinates away from screen corners to avoid
             // triggering macOS hot corners.
-            let cornerInset: CGFloat = 10
-            start.y = max(start.y, displayBounds.minY + cornerInset)
-            end.y = max(end.y, displayBounds.minY + cornerInset)
+            let cornerSafeX: CGFloat = 15
+
+            // Clamping X is safer than clamping Y as it avoids the "stuck pointer" issue.
+            start.x = min(max(start.x, displayBounds.minX + cornerSafeX), displayBounds.maxX - cornerSafeX)
+            end.x = min(max(end.x, displayBounds.minX + cornerSafeX), displayBounds.maxX - cornerSafeX)
 
             MenuBarItemManager.diagLog.debug(
-                "Move clamp source=\(clampSource) startX=\(start.x) targetMinX=\(targetBounds.minX) itemMinX=\(itemBounds.minX) targetTag=\(destination.targetItem.tag) itemTag=\(item.tag) display=\(displayID)"
+                "Move clamp source=\(clampSource) startX=\(start.x) endX=\(end.x) startY=\(start.y) targetMinX=\(targetBounds.minX) itemMinX=\(itemBounds.minX) targetTag=\(destination.targetItem.tag) itemTag=\(item.tag) display=\(displayID)"
             )
         }
         return (start, end)
